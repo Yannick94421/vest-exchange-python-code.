@@ -72,7 +72,6 @@ async def post_register():
         return None
 
 
-if sys.platform.startswith("win"):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+if "__name__"=="__main__":
 
     asyncio.run(post_register())
