@@ -272,65 +272,8 @@ class PerpsVestExchange:
                         initMarginRatio="0",
                         postTime=post_time
                     )
-            print(response)
-            raise Exception(f"Erreur lors de la création de l'ordre {order_status}")
-        except :
-            post_time = int(time.time() * 1000)
-            request_args = encode(
-                ["uint256", "uint256", "string", "string", "bool", "string", "string", "bool"],
-                [
-                    post_time,
-                    post_time,
-                    order_type,
-                    symbol,
-                    is_buy,
-                    size,
-                    limit_price ,
-                    reduce_only,
-                ],
-            )
-            signable_msg = encode_defunct(Web3.keccak(request_args))
-            signature = EthAccount.sign_message(signable_msg, self.private_key).signature.hex()
-            
-            body = {
-                "order": {
-                    "time": post_time,
-                    "nonce": post_time,
-                    "symbol": symbol,
-                    "isBuy": is_buy,
-                    "size": size,
-                    "orderType": order_type,
-                    "limitPrice": limit_price,
-                    "reduceOnly": reduce_only,
-                },
-                "recvWindow": 60000,
-                "signature": signature,
-            }
-            if order_type == "LIMIT" and tif:
-                body["order"]["timeInForce"] = tif
-
-            response = await self._post_request("/orders", body)
-
-            if response and "id" in response:
-                order_id = response["id"]
-                await asyncio.sleep(3) 
-                order_status = await self.get_order_status(order_id)
-                if order_status and order_status.status != "REJECTED":
-                    return Order(
-                        id=response["id"],
-                        nonce=post_time,
-                        symbol=symbol,
-                        isBuy=is_buy,
-                        orderType=order_type,
-                        limitPrice=limit_price,
-                        size=size,
-                        status=order_status.status,
-                        reduceOnly=reduce_only,
-                        initMarginRatio="0",
-                        postTime=post_time
-                    )
-        print(response)
-        raise Exception(f"Erreur lors de la création de l'ordre {order_status}")
+        except : 
+            print("position is not open")
 
     async def close_position(self, symbol: str,limit_price : str, target_position : Position) -> Order:
         """Ferme une position ouverte pour un symbole donné."""
@@ -338,7 +281,11 @@ class PerpsVestExchange:
             is_buy = not target_position.isLong
             size = target_position.size
             return await self.post_order(symbol, is_buy, size, "MARKET", limit_price=limit_price, reduce_only=True)
-        except Exception as e : 
+        except Exception as e :
+            await asyncio.sleep(1) 
+            positions = await self.get_positions()
+            if len(positions) < 1:
+                return target_position
             print(e)
             raise Exception("position is not close")
         
@@ -504,7 +451,7 @@ class PerpsVestExchange:
             return(self.last_sl_price < (markprice - markprice*0.01))
         return(self.last_sl_price > (markprice + markprice*0.01))
 
-    async def TMA5M(self, symbol: str, short_period: int = 10, mid_period: int = 20, long_period: int = 50) -> None:
+    async def exemple(self, symbol: str, short_period: int = 10, mid_period: int = 20, long_period: int = 50) -> None:
 
         await self.set_leverage(symbol, 10)  
         CANDLE_DURATION = 300 
@@ -645,7 +592,7 @@ async def main():
     api_key = ""
     accgroup = ""
     exchange = PerpsVestExchange(private_key, signing_addr, primary_addr, api_key,accgroup)
-    await exchange.TMA5M("BTC-PERP")
+    await exchange.exemple("BTC-PERP")
 
 if __name__=="__main__":
     asyncio.run(main())
